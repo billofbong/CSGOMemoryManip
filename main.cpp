@@ -18,8 +18,8 @@ struct glowObject
 	unsigned char junk2[14];
 };
 
-void trigger(process p, uintptr_t local_player);
-void bhop(process p, uintptr_t local_player);
+bool trigger(process p, uintptr_t local_player);
+bool bhop(process p, uintptr_t local_player);
 void glow(process p, uintptr_t local_player, bool enabled);
 std::string center(const std::string& to_center, const int width)
 {
@@ -53,8 +53,8 @@ int main()
 	while (true)
 	{
 		ReadProcessMemory(p.getHandle(), LPCVOID(p.getBase() + signatures::dwLocalPlayer), &local_player, sizeof(uintptr_t), NULL);
-		trigger(p, local_player);
-		bhop(p, local_player);
+		bool slept = trigger(p, local_player);
+		slept = slept | bhop(p, local_player);
 		if (GetAsyncKeyState(VK_F1) && !glowKeyPressed)
 		{
 			glowEnabled = !glowEnabled;
@@ -63,11 +63,12 @@ int main()
 		if (!GetAsyncKeyState(VK_F1) && glowKeyPressed)
 			glowKeyPressed = false;
 		glow(p, local_player, glowEnabled);
-		Sleep(1);
+		if(!slept)
+			Sleep(1);
 	}
 }
 
-void trigger(process p, const uintptr_t local_player)
+bool trigger(process p, const uintptr_t local_player)
 {
 	int i_buffer;
 	int crosshair_id;
@@ -86,10 +87,12 @@ void trigger(process p, const uintptr_t local_player)
 		Sleep(50);
 		i_buffer = 4;
 		WriteProcessMemory(p.getHandle(), LPVOID(p.getBase() + signatures::dwForceAttack), &i_buffer, sizeof(int), NULL);
+		return true;
 	}
+	return false;
 
 }
-void bhop(process p, const uintptr_t local_player)
+bool bhop(process p, const uintptr_t local_player)
 {
 	int i_buffer;
 	BYTE flags;
@@ -101,7 +104,9 @@ void bhop(process p, const uintptr_t local_player)
 		Sleep(50);
 		i_buffer = 4;
 		WriteProcessMemory(p.getHandle(), LPVOID(p.getBase() + signatures::dwForceJump), &i_buffer, sizeof(int), NULL);
+		return true;
 	}
+	return false;
 }
 void glow(process p, const uintptr_t local_player, const bool enabled)
 {
